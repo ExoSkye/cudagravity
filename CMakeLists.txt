@@ -9,11 +9,20 @@ find_package(SDL2 REQUIRED)
 
 add_subdirectory(glm)
 
-set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS} "-G")
+set(CMAKE_CUDA_FLAGS ${CMAKE_CUDA_FLAGS} "")
 
-add_executable(cudagravity main.cu particle.cu particle.cuh definitions.cuh cudaMemory.cuh sdlHelper.cu sdlHelper.cuh)
+# Simulator
 
-target_link_libraries(cudagravity PUBLIC glm::glm SDL2::SDL2)
+add_executable(cudagravity_sim sim/main.cu common/particle.hpp common/definitions.hpp sim/cudaMemory.cuh sim/exportHelper.cu sim/exportHelper.cuh)
 
-set_target_properties(cudagravity PROPERTIES
+target_include_directories(cudagravity_sim PUBLIC common)
+
+target_link_libraries(cudagravity_sim PUBLIC glm::glm SDL2::SDL2)
+
+set_target_properties(cudagravity_sim PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
+
+# Viewer
+
+add_executable(cudagravity_viewer viewer/main.cpp common/particle.hpp common/definitions.hpp)
+target_include_directories(cudagravity_viewer PUBLIC common)
