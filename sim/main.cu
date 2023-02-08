@@ -65,19 +65,17 @@ float get_random() {
 }
 
 int main() {
-    exportHelper sdlHelper;
+    exportHelper exportHelper;
 
-    size_t N = 200;
+    size_t N = 2000;
 
     CudaMemory<Particle> particles = CudaMemory<Particle>(N);
     CudaMemory<vec2> accelerations = CudaMemory<vec2>(N);
 
     for (int i = 0; i < N; i++) {
         accelerations[i] = vec2(0, 0);
-        particles[i] = Particle{1, vec2(get_random(), get_random()), vec2(get_random(), get_random())};
+        particles[i] = Particle{10, vec2(get_random(), get_random()), vec2(get_random(), get_random())};
     }
-
-    //cudaDeviceGetAttribute((int*)(&threadsPerBlock_cpu.x), cudaDevAttrMaxThreadsPerBlock, 0);
 
     dim3 n_blocksPerGrid = dim3(
             ((N) + threadsPerBlock_cpu.x - 1) / threadsPerBlock_cpu.x
@@ -92,7 +90,7 @@ int main() {
     particles.send();
     accelerations.send();
 
-    sdlHelper.setParticles(&particles, N);
+    exportHelper.setParticles(&particles, N);
 
     while(true) {
         run_step<<<n_blocksPerGrid, threadsPerBlock_cpu>>>(particles.getDevicePointer(), accelerations.getDevicePointer(), N);
@@ -101,14 +99,14 @@ int main() {
 
         accelerations.send();
 
-        sdlHelper.epoch();
+        exportHelper.epoch();
 
-        if (!sdlHelper.should_stop) {
+        if (!exportHelper.should_stop) {
             break;
         }
     }
 
-    sdlHelper.stop();
+    exportHelper.stop();
 
     cudaDeviceSynchronize();
 
