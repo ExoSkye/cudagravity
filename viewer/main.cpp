@@ -32,11 +32,12 @@ int main() {
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_Window* window = SDL_CreateWindow("Verlet", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 800, SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("Verlet", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 800,
+                                          SDL_WINDOW_SHOWN);
 
     SDL_Event event;
 
-    SDL_Surface* surf = SDL_CreateRGBSurface(0, 800, 800, 32, 0, 0, 0, 0);
+    SDL_Surface *surf = SDL_CreateRGBSurface(0, 800, 800, 32, 0, 0, 0, 0);
 
     std::vector<Particle> particles;
 
@@ -70,13 +71,13 @@ int main() {
 
                     case SDLK_LEFT:
                         t -= dt;
-                        current_idx = (int)t;
+                        current_idx = (int) t;
                         update_required = true;
                         break;
 
                     case SDLK_RIGHT:
                         t += dt;
-                        current_idx = (int)t;
+                        current_idx = (int) t;
                         update_required = true;
                         break;
 
@@ -105,7 +106,7 @@ int main() {
                             max_dim -= 0.1;
                         }
 
-			max_dim = std::abs(max_dim);
+                        max_dim = std::abs(max_dim);
 
                         update_required = true;
                         break;
@@ -144,7 +145,7 @@ int main() {
 
         if (!pause) {
             t += dt;
-            current_idx = (int)t;
+            current_idx = (int) t;
             update_required = true;
         }
 
@@ -152,7 +153,7 @@ int main() {
             char filename[256];
             sprintf(filename, "./output/%zu.dat", current_idx);
 
-            FILE* f = fopen(filename, "rb");
+            FILE *f = fopen(filename, "rb");
 
             if (f == nullptr) {
                 printf("File not found: %s\n", filename);
@@ -160,23 +161,25 @@ int main() {
                 pause = true;
 
             } else {
-		SDL_FillRect(surf, nullptr, SDL_MapRGB(surf->format, 0, 0, 0));
+                SDL_FillRect(surf, nullptr, SDL_MapRGB(surf->format, 0, 0, 0));
 
-		particles.clear();
+                particles.clear();
 
-                char *cur_line = (char *)malloc(64 * sizeof(char));
-                size_t len = 64;
+                char *cur_line = (char *) malloc(sizeof(float) * 5 + 1);
+                size_t len = sizeof(float) * 5 + 1;
 
                 while (true) {
-                    if (getline(&cur_line, &len, f) <= 0) {
+                    fread(cur_line, len, 1, f);
+
+                    if (feof(f)) {
                         break;
                     }
 
-                    float x = *(float*)cur_line;
-		    float y = *(float*)cur_line[32];
-                    float vx = *(float*)cur_line[64];
-                    float vy = *(float*)cur_line[96];
-		    float m = *(float*)cur_line[128];
+                    float x = *(float *) cur_line;
+                    float y = *(float *)&cur_line[sizeof(float)];
+                    float vx = *(float *)&cur_line[sizeof(float) * 2];
+                    float vy = *(float *)&cur_line[sizeof(float) * 3];
+                    float m = *(float *)&cur_line[sizeof(float) * 4];
 
                     particles.push_back(Particle{m, {x, y}, {vx, vy}});
                 }
@@ -206,7 +209,7 @@ int main() {
 
         SDL_framerateDelay(&fps);
 
-        SDL_Surface* window_surface = SDL_GetWindowSurface(window);
+        SDL_Surface *window_surface = SDL_GetWindowSurface(window);
 
         SDL_BlitSurface(surf, NULL, window_surface, NULL);
 

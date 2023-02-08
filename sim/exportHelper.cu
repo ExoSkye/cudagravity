@@ -56,18 +56,17 @@ void exportHelper::imageWriter(size_t idx, thread* thread) {
     auto* particles_copy = (Particle*)malloc(this->particles->size());
     this->particles->sync_to(&particles_copy);
 
-    char data[32 * 5 + 1];
-    data[32*5] = '\0';
+    char data[sizeof(float) * 5 + 1];
+    data[sizeof(float) * 5] = '\n';
 
     for (size_t i = 0; i < particle_count; i++) {
-	memcpy(data, &particles_copy[i].position.x, sizeof(float));
-        memcpy(&data[32], &particles_copy[i].position.y, sizeof(float));
-        memcpy(&data[64], &particles_copy[i].velocity.x, sizeof(float));
-        memcpy(&data[96], &particles_copy[i].velocity.y, sizeof(float));
-        memcpy(&data[128], &particles_copy[i].mass, sizeof(float));
+	    memcpy(data, &particles_copy[i].position.x, sizeof(float));
+        memcpy(&data[sizeof(float)], &particles_copy[i].position.y, sizeof(float));
+        memcpy(&data[sizeof(float) * 2], &particles_copy[i].velocity.x, sizeof(float));
+        memcpy(&data[sizeof(float) * 3], &particles_copy[i].velocity.y, sizeof(float));
+        memcpy(&data[sizeof(float) * 4], &particles_copy[i].mass, sizeof(float));
 
-
-        fprintf(f, "%s\n", particles_copy[i].position.x, particles_copy[i].position.y, particles_copy[i].velocity.x, particles_copy[i].velocity.y, particles_copy[i].mass);
+        fwrite(data, sizeof(char), sizeof(float) * 5 + 1, f);
     }
 
     free(particles_copy);
