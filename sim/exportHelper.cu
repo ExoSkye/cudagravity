@@ -56,8 +56,18 @@ void exportHelper::imageWriter(size_t idx, thread* thread) {
     auto* particles_copy = (Particle*)malloc(this->particles->size());
     this->particles->sync_to(&particles_copy);
 
+    char data[32 * 5 + 1];
+    data[32*5] = '\0';
+
     for (size_t i = 0; i < particle_count; i++) {
-        fprintf(f, "%f %f %f %f %f\n", particles_copy[i].position.x, particles_copy[i].position.y, particles_copy[i].velocity.x, particles_copy[i].velocity.y, particles_copy[i].mass);
+	memcpy(data, &particles_copy[i].position.x, sizeof(float));
+        memcpy(&data[32], &particles_copy[i].position.y, sizeof(float));
+        memcpy(&data[64], &particles_copy[i].velocity.x, sizeof(float));
+        memcpy(&data[96], &particles_copy[i].velocity.y, sizeof(float));
+        memcpy(&data[128], &particles_copy[i].mass, sizeof(float));
+
+
+        fprintf(f, "%s\n", particles_copy[i].position.x, particles_copy[i].position.y, particles_copy[i].velocity.x, particles_copy[i].velocity.y, particles_copy[i].mass);
     }
 
     free(particles_copy);

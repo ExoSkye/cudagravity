@@ -104,6 +104,9 @@ int main() {
                         } else {
                             max_dim -= 0.1;
                         }
+
+			max_dim = std::abs(max_dim);
+
                         update_required = true;
                         break;
 
@@ -146,9 +149,6 @@ int main() {
         }
 
         if (update_required) {
-            SDL_FillRect(surf, nullptr, SDL_MapRGB(surf->format, 0, 0, 0));
-            particles.clear();
-
             char filename[256];
             sprintf(filename, "./output/%zu.dat", current_idx);
 
@@ -158,7 +158,11 @@ int main() {
                 printf("File not found: %s\n", filename);
                 printf("End of simulation\n");
                 pause = true;
+
             } else {
+		SDL_FillRect(surf, nullptr, SDL_MapRGB(surf->format, 0, 0, 0));
+
+		particles.clear();
 
                 char *cur_line = (char *)malloc(64 * sizeof(char));
                 size_t len = 64;
@@ -168,11 +172,11 @@ int main() {
                         break;
                     }
 
-                    float x, y, vx, vy, m;
-
-                    if (sscanf(cur_line, "%f %f %f %f %f", &x, &y, &vx, &vy, &m) != 5) {
-                        break;
-                    }
+                    float x = *(float*)cur_line;
+		    float y = *(float*)cur_line[32];
+                    float vx = *(float*)cur_line[64];
+                    float vy = *(float*)cur_line[96];
+		    float m = *(float*)cur_line[128];
 
                     particles.push_back(Particle{m, {x, y}, {vx, vy}});
                 }
