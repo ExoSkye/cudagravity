@@ -26,8 +26,10 @@ public:
 
     exportHelper* getInstance();
 
-    void setParticles(CudaMemory<Particle>* _particles, size_t N) {
-        this->particles = _particles;
+    void setParticles(CudaMemory<vec2>* _velocities, CudaMemory<vec2>* _positions, CudaMemory<float>* _masses, size_t N) {
+        this->velocities = _velocities;
+        this->positions = _positions;
+        this->masses = _masses;
         this->particle_count = N;
     }
 
@@ -41,7 +43,10 @@ private:
     size_t n = 0;
     size_t count = 0;
 
-    CudaMemory<Particle>* particles;
+    CudaMemory<vec2>* velocities;
+    CudaMemory<vec2>* positions;
+    CudaMemory<float>* masses;
+
     size_t particle_count;
 
     std::list<thread> exportThreads;
