@@ -67,9 +67,11 @@ float get_random() {
 int main() {
     exportHelper exportHelper;
 
-    size_t N = 2000;
+    size_t N = 2500;
 
-    CudaMemory<Particle> particles = CudaMemory<Particle>(N);
+    CudaMemory<float> masses = CudaMemory<float>(N);
+    CudaMemory<vec2> velocities = CudaMemory<vec2>(N);
+    CudaMemory<vec2> positions = CudaMemory<vec2>(N);
     CudaMemory<vec2> accelerations = CudaMemory<vec2>(N);
 
     for (int i = 0; i < N; i++) {
@@ -87,13 +89,15 @@ int main() {
     cudaMemcpyToSymbol(n_blocksPerGridGpu, &n_blocksPerGrid, sizeof(dim3));
     cudaMemcpyToSymbol(threadsPerBlock_gpu, &threadsPerBlock_cpu, sizeof(dim3));
 
-    particles.send();
+    velocities.send();
+    positions.send();
+    masses.send();
     accelerations.send();
 
-    exportHelper.setParticles(&particles, N);
+    exportHelper.setParticles(&velocities, &positions, &masses, N);
 
     while(true) {
-        run_step<<<n_blocksPerGrid, threadsPerBlock_cpu>>>(particles.getDevicePointer(), accelerations.getDevicePointer(), N);
+        run_step<<<n_blocksPerGrid, threadsPerBlock_cpu>>>(positions.getDevicePointer(), velocities.getDevicePointer(), masses.getDevicePointer(), accelerations.getDevicePointer(), N);
 
         cudaDeviceSynchronize();
 

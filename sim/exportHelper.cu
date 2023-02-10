@@ -53,23 +53,30 @@ void exportHelper::imageWriter(size_t idx, thread* thread) {
 
     FILE* f = fopen64(filename, "wb");
 
-    auto* particles_copy = (Particle*)malloc(this->particles->size());
-    this->particles->sync_to(&particles_copy);
+    auto* positions_copy = (vec2*)malloc(this->particle_count * sizeof(vec2));
+    auto* velocities_copy = (vec2*)malloc(this->particle_count * sizeof(vec2));
+    auto* masses_copy = (float*)malloc(this->particle_count * sizeof(float));
+
+    this->positions->sync_to(&positions_copy);
+    this->velocities->sync_to(&velocities_copy);
+    this->masses->sync_to(&masses_copy);
 
     char data[sizeof(float) * 5 + 1];
     data[sizeof(float) * 5] = '\n';
 
     for (size_t i = 0; i < particle_count; i++) {
-	    memcpy(data, &particles_copy[i].position.x, sizeof(float));
-        memcpy(&data[sizeof(float)], &particles_copy[i].position.y, sizeof(float));
-        memcpy(&data[sizeof(float) * 2], &particles_copy[i].velocity.x, sizeof(float));
-        memcpy(&data[sizeof(float) * 3], &particles_copy[i].velocity.y, sizeof(float));
-        memcpy(&data[sizeof(float) * 4], &particles_copy[i].mass, sizeof(float));
+	    memcpy(data, &positions_copy[i].x, sizeof(float));
+        memcpy(&data[sizeof(float)], &positions_copy[i].y, sizeof(float));
+        memcpy(&data[sizeof(float) * 2], &velocities_copy[i].x, sizeof(float));
+        memcpy(&data[sizeof(float) * 3], &velocities_copy[i].y, sizeof(float));
+        memcpy(&data[sizeof(float) * 4], &masses_copy[i], sizeof(float));
 
         fwrite(data, sizeof(char), sizeof(float) * 5 + 1, f);
     }
 
-    free(particles_copy);
+    free(positions_copy);
+    free(velocities_copy);
+    free(masses_copy);
     fflush(f);
     fclose(f);
 
