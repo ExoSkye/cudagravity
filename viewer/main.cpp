@@ -165,15 +165,14 @@ int main() {
 
                 particles.clear();
 
-                char *cur_line = (char *) malloc(sizeof(float) * 5 + 1);
-                size_t len = sizeof(float) * 5 + 1;
+                size_t N = 0;
+                fread(&N, sizeof(size_t), 1, f);
 
-                while (true) {
+                char *cur_line = (char *) malloc(sizeof(float) * 5);
+                size_t len = sizeof(float) * 5;
+
+                for (size_t i = 0; i < N; i++) {
                     fread(cur_line, len, 1, f);
-
-                    if (feof(f)) {
-                        break;
-                    }
 
                     float x = *(float *) cur_line;
                     float y = *(float *)&cur_line[sizeof(float)];
@@ -193,14 +192,28 @@ int main() {
                     }
                 }
 
+                /*size_t max_thr = 255 * 255 * 255;
+                size_t max_sqr = 255 * 255;
+                size_t max = 255;
+
+                size_t num_particles = particles.size();
+                size_t colour_step = (max_thr) / (num_particles + 1);
+
+                size_t colour = max_thr;
+                int* colour_r = (int*)&(&colour)[0];
+                int* colour_g = (int*)&(&colour)[1];
+                int* colour_b = (int*)&(&colour)[2];
+*/
                 for (auto &particle: particles) {
                     particle.position /= (max_dim * 1.1);
                     particle.position *= 400.0;
                     particle.position += vec2(400, 400);
 
-                    SDL_Rect rect = {(int) particle.position.x - 1, (int) particle.position.y - 1, 2, 2};
+                    SDL_Rect rect = {(int) (particle.position.x - 1), (int) (particle.position.y - 1), 2, 2};
 
-                    SDL_FillRect(surf, &rect, SDL_MapRGB(surf->format, 255, 255, 255));
+                    SDL_FillRect(surf, &rect, SDL_MapRGB(surf->format, /* *colour_r, *colour_g, *colour_b */ 255, 255, 255));
+
+                    //colour -= colour_step;
                 }
             }
 

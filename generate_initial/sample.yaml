@@ -1,0 +1,13 @@
+threads: 1024
+dt: 0.01
+epochs: 1000
+gravity_constant: "real"
+
+particles:
+  - position: [0, 0]
+    velocity: [0, 0]
+    mass: 1
+
+  - position: [1, 0]
+    velocity: [0, 0]
+    mass: 1

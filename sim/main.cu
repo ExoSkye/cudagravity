@@ -6,14 +6,13 @@
 #include "glm/glm.hpp"
 #include <unistd.h>
 
-__constant__ const float G_CONSTANT = 1;
-__constant__ float dt = 0.0001;
-__constant__ const float softening = 0.0000;
-__constant__ const dim3 threadsPerBlock_gpu = dim3(1024);
-const dim3 threadsPerBlock_cpu = dim3(1024);
+__constant__ float G_CONSTANT = 1;
+__constant__ float dt = 0.04366762767265625454879349793878376839702869868857256785727591752676;
+__constant__ dim3 threadsPerBlock_gpu = dim3(1024);
+dim3 threadsPerBlock_cpu = dim3(1024);
 __constant__ dim3 n_blocksPerGridGpu;
 
-__global__ void getAccels(Particle* particles, vec2* accels, size_t N, size_t i) {
+__global__ void getAccels(vec2* positions, const float* masses, vec2* accels, size_t N, size_t i) {
     size_t id = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (id < N) {
@@ -23,60 +22,96 @@ __global__ void getAccels(Particle* particles, vec2* accels, size_t N, size_t i)
             return;
         }
 
-        Particle p2 = particles[i];
-        Particle p1 = particles[j];
+        vec2 p1 = positions[j];
+        vec2 p2 = positions[i];
 
-        float dist = glm::distance(p1.position, p2.position);
+        float m1 = masses[j];
+        float m2 = masses[i];
 
-        vec2 f = -G_CONSTANT * ((p2.mass * p1.mass) / (dist * dist)) * glm::normalize(p2.position - p1.position);
+        float dist = glm::distance(p1, p2);
 
-        vec2 accel = f / p2.mass;
+        vec2 f = -G_CONSTANT * ((m2 * m1) / (dist * dist)) * glm::normalize(p2 - p1);
+
+        vec2 accel = f / m2;
 
         atomicAdd(&(accels[i].x), accel.x);
         atomicAdd(&(accels[i].y), accel.y);
     }
 }
 
-__global__ void run_step(Particle* particles, vec2* accels, size_t N) {
+__global__ void run_step(vec2* positions, vec2* velocities, const float* masses, vec2* accels, size_t N) {
     size_t id = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (id < N) {
-        Particle& cur_particle = particles[id];
+        vec2& position = positions[id];
+        vec2& velocity = velocities[id];
 
-        cur_particle.velocity.x += accels[id].x * dt / 2.0f;
-        cur_particle.velocity.y += accels[id].y * dt / 2.0f;
+        velocity.x += accels[id].x * dt / 2.0f;
+        velocity.y += accels[id].y * dt / 2.0f;
 
-        cur_particle.position.x += cur_particle.velocity.x * dt;
-        cur_particle.position.y += cur_particle.velocity.y * dt;
+        position.x += velocity.x * dt;
+        position.y += velocity.y * dt;
 
-        getAccels<<<n_blocksPerGridGpu, threadsPerBlock_gpu>>>(particles, accels, N, id);
+        getAccels<<<n_blocksPerGridGpu, threadsPerBlock_gpu>>>(positions, masses, accels, N, id);
 
         __syncthreads();
 
-        cur_particle.velocity.x += accels[id].x * dt / 2.0f;
-        cur_particle.velocity.y += accels[id].y * dt / 2.0f;
+        velocity.x += accels[id].x * dt / 2.0f;
+        velocity.y += accels[id].y * dt / 2.0f;
     }
 }
 
-float get_random() {
-    float r = arc4random();
-
-    return (r / ((float)UINT32_MAX / 2.0f)) - 1;
-}
-
 int main() {
-    exportHelper exportHelper;
+    FILE *fp = fopen("initial.ibin", "rb");
 
-    size_t N = 2500;
+    if (fp == NULL) {
+        printf("Initial file not found\n");
+        return 1;
+    }
+
+    char *cur_line = (char *) malloc(sizeof(float) * 5);
+    size_t len = sizeof(float) * 5;
+
+    size_t N = 0;
+
+    // Read Header
+
+    char magic[4];
+    fread(magic, sizeof(char), 4, fp);
+
+    if (strcmp(magic, "IBIN") != 0) {
+        printf("Invalid file format\n");
+        return 1;
+    }
+
+    size_t epochs;
+
+    fread(&dt, sizeof(float), 1, fp);
+    fread(&(threadsPerBlock_cpu.x), sizeof(int), 1, fp);
+    fread(&epochs, sizeof(size_t), 1, fp);
+    fread(&G_CONSTANT, sizeof(float), 1, fp);
+    fread(&N, sizeof(size_t), 1, fp);
+    fseek(fp, 4, SEEK_CUR);
+
+    exportHelper exportHelper(epochs);
 
     CudaMemory<float> masses = CudaMemory<float>(N);
     CudaMemory<vec2> velocities = CudaMemory<vec2>(N);
     CudaMemory<vec2> positions = CudaMemory<vec2>(N);
     CudaMemory<vec2> accelerations = CudaMemory<vec2>(N);
 
-    for (int i = 0; i < N; i++) {
-        accelerations[i] = vec2(0, 0);
-        particles[i] = Particle{10, vec2(get_random(), get_random()), vec2(get_random(), get_random())};
+    for (size_t i = 0; i < N; i++) {
+        fread(cur_line, len, 1, fp);
+
+        float x = *(float *) cur_line;
+        float y = *(float *)&cur_line[sizeof(float)];
+        float vx = *(float *)&cur_line[sizeof(float) * 2];
+        float vy = *(float *)&cur_line[sizeof(float) * 3];
+        float m = *(float *)&cur_line[sizeof(float) * 4];
+
+        masses[i] = m;
+        velocities[i] = vec2(vx, vy);
+        positions[i] = vec2(x, y);
     }
 
     dim3 n_blocksPerGrid = dim3(

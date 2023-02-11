@@ -21,7 +21,7 @@ class exportHelper {
 public:
     bool should_stop = true;
 
-    exportHelper();
+    explicit exportHelper(size_t epochs);
     ~exportHelper();
 
     exportHelper* getInstance();

@@ -6,20 +6,10 @@
 
 #include <sys/stat.h>
 
-exportHelper::exportHelper() {
+exportHelper::exportHelper(size_t epochs) {
     mkdir("output", S_IRWXU);
 
-    char* epochs_str = getenv("EPOCHS");
-
-    if (epochs_str != nullptr) {
-        if (sscanf(epochs_str, "%zu", &this->n) == 0) {
-            printf("Failed to parse EPOCHS environment variable - required when NO_DISPLAY is set\n");
-            should_stop = false;
-        }
-    } else {
-        printf("Failed to parse EPOCHS environment variable - required when NO_DISPLAY is set\n");
-        should_stop = false;
-    }
+    this->n = epochs;
 
     if (instance == nullptr) {
         instance = this;
@@ -28,7 +18,7 @@ exportHelper::exportHelper() {
 
 void exportHelper::stop() {
     if (instance == this) {
-        should_stop = false;
+        should_stop = true;
 
         for (auto& thread : exportThreads) {
             if (thread.running) {
@@ -61,8 +51,9 @@ void exportHelper::imageWriter(size_t idx, thread* thread) {
     this->velocities->sync_to(&velocities_copy);
     this->masses->sync_to(&masses_copy);
 
-    char data[sizeof(float) * 5 + 1];
-    data[sizeof(float) * 5] = '\n';
+    char data[sizeof(float) * 5];
+
+    fwrite(&particle_count, sizeof(size_t), 1, f);
 
     for (size_t i = 0; i < particle_count; i++) {
 	    memcpy(data, &positions_copy[i].x, sizeof(float));
@@ -71,7 +62,7 @@ void exportHelper::imageWriter(size_t idx, thread* thread) {
         memcpy(&data[sizeof(float) * 3], &velocities_copy[i].y, sizeof(float));
         memcpy(&data[sizeof(float) * 4], &masses_copy[i], sizeof(float));
 
-        fwrite(data, sizeof(char), sizeof(float) * 5 + 1, f);
+        fwrite(data, sizeof(char), sizeof(float) * 5, f);
     }
 
     free(positions_copy);

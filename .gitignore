@@ -1,0 +1,6 @@
+venv/
+*.ibin
+*.bin
+*build*/
+.idea/
+profiles/
