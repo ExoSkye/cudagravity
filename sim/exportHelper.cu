@@ -39,7 +39,7 @@ exportHelper *exportHelper::getInstance() {
 
 void exportHelper::imageWriter(size_t idx, thread* thread) {
     char filename[256];
-    sprintf(filename, "output/%zu.dat", idx);
+    sprintf(filename, "output/%zu.bin", idx);
 
     FILE* f = fopen64(filename, "wb");
 
