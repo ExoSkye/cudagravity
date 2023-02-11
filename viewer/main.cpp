@@ -151,7 +151,7 @@ int main() {
 
         if (update_required) {
             char filename[256];
-            sprintf(filename, "./output/%zu.dat", current_idx);
+            sprintf(filename, "./output/%zu.bin", current_idx);
 
             FILE *f = fopen(filename, "rb");
 
